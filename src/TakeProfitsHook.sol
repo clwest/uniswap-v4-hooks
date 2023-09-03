@@ -154,7 +154,6 @@ contract TakeProfitsHook is BaseHook, ERC1155 {
         emit DebugString("About to call _getTickLower");
         emit DebugString("Entering placeOrder");
         int24 tickLower = _getTickLower(tick, key.tickSpacing);
-        require(amountIn > 0, "Amount to place in order must be greater than zero");
         takeProfitPositions[key.toId()][tickLower][zeroForOne] += int256(amountIn);
         uint256 tokenId = getTokenId(key, tickLower, zeroForOne);
 
@@ -167,7 +166,7 @@ contract TakeProfitsHook is BaseHook, ERC1155 {
 
         // Mint ERC-1155 tokens to the user
         _mint(msg.sender, tokenId, amountIn, "");
-        require(tokenIdTotalSupply[tokenId] >= amountIn, "Insufficient total supply for the token");
+        // require(tokenIdTotalSupply[tokenId] >= amountIn, "Insufficient total supply for the token");
         tokenIdTotalSupply[tokenId] += amountIn;
 
         // Extract the address of the token the user wants to sell

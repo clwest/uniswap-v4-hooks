@@ -91,6 +91,7 @@ contract TakeProfitsHookTest is Test, GasSnapshot {
         (, bytes32[] memory writes) = vm.accesses(address(stub));
 
         // Etch the code of the stub at the hardcoded address
+        console.log("Hello stub");
         vm.etch(address(hook), address(stub).code);
 
         // Replay the storage slot writes at the hook address
@@ -217,125 +218,126 @@ contract TakeProfitsHookTest is Test, GasSnapshot {
         // equal to the `amount` of token0 tokens we placed the order for
         assertTrue(tokenId != 0);
         assertEq(tokenBalance, amount);
+        console.log("ERC-1155", tokenId, tokenBalance);
     }
 
-    // function test_cancelOrder() public {
-    //   // Place an order similar as earlier, but cancel it later
-    //   int24 tick = 100;
-    //   uint256 amount = 10 ether;
-    //   bool zeroForOne = true;
+    function test_cancelOrder() public {
+      // Place an order similar as earlier, but cancel it later
+      int24 tick = 100;
+      uint256 amount = 10 ether;
+      bool zeroForOne = true;
 
-    //   uint256 originalBalance = token0.balanceOf(address(this));
+      uint256 originalBalance = token0.balanceOf(address(this));
 
-    //   token0.approve(address(hook), amount);
-    //   int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
+      token0.approve(address(hook), amount);
+      int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
 
-    //   uint256 newBalance = token0.balanceOf(address(this));
+      uint256 newBalance = token0.balanceOf(address(this));
 
-    //   assertEq(tickLower, 60);
-    //   assertEq(originalBalance - newBalance, amount);
+      assertEq(tickLower, 60);
+      assertEq(originalBalance - newBalance, amount);
 
-    //   // Check the balance of ERC-1155 tokens we received
-    //   uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
-    //   uint256 tokenBalance = hook.balanceOf(address(this), tokenId);
-    //   assertEq(tokenBalance, amount);
+      // Check the balance of ERC-1155 tokens we received
+      uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
+      uint256 tokenBalance = hook.balanceOf(address(this), tokenId);
+      assertEq(tokenBalance, amount);
 
-    //   // Cancel the order
-    //   hook.cancelOrder(poolKey, tickLower, zeroForOne);
+      // Cancel the order
+      hook.cancelOrder(poolKey, tickLower, zeroForOne);
 
-    //   // Check that we received our token0 tokens back, and no longer own any ERC-1155 tokens
-    //   uint256 finalBalance = token0.balanceOf(address(this));
-    //   assertEq(finalBalance, originalBalance);
+      // Check that we received our token0 tokens back, and no longer own any ERC-1155 tokens
+      uint256 finalBalance = token0.balanceOf(address(this));
+      assertEq(finalBalance, originalBalance);
 
-    //   tokenBalance = hook.balanceOf(address(this), tokenId);
-    //   assertEq(tokenBalance, 0);
-    // }
+      tokenBalance = hook.balanceOf(address(this), tokenId);
+      assertEq(tokenBalance, 0);
+    }
 
-    // function test_orderExecute_zeroForOne() public {
-    //   int24 tick = 100;
-    //   uint256 amount = 10 ether;
-    //   bool zeroForOne = true;
+    function test_orderExecute_zeroForOne() public {
+      int24 tick = 100;
+      uint256 amount = 10 ether;
+      bool zeroForOne = true;
 
-    //   // Place our order at tick 100 for 10e18 token0 tokens
-    //   token0.approve(address(hook), amount);
-    //   int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
+      // Place our order at tick 100 for 10e18 token0 tokens
+      token0.approve(address(hook), amount);
+      int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
 
-    //   // Do a separate swap from oneForZero to make tick go up
-    //   // Sell 1e18 token1 tokens for token0 tokens
-    //   IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-    //       zeroForOne: !zeroForOne,
-    //       amountSpecified: 1 ether,
-    //       sqrtPriceLimitX96: TickMath.MAX_SQRT_RATIO - 1
-    //   });
+      // Do a separate swap from oneForZero to make tick go up
+      // Sell 1e18 token1 tokens for token0 tokens
+      IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+          zeroForOne: !zeroForOne,
+          amountSpecified: 1 ether,
+          sqrtPriceLimitX96: TickMath.MAX_SQRT_RATIO - 1
+      });
 
-    //   PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
-    //       .TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+      PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
+          .TestSettings({withdrawTokens: true, settleUsingTransfer: true});
 
-    //   swapRouter.swap(poolKey, params, testSettings);
+      swapRouter.swap(poolKey, params, testSettings);
 
-    //   // Check that the order has been executed
-    //   int256 tokensLeftToSell = hook.takeProfitPositions(
-    //       poolId,
-    //       tick,
-    //       zeroForOne
-    //   );
-    //   assertEq(tokensLeftToSell, 0);
+      // Check that the order has been executed
+      int256 tokensLeftToSell = hook.takeProfitPositions(
+          poolId,
+          tick,
+          zeroForOne
+      );
+      assertEq(tokensLeftToSell, 0);
 
-    //   // Check that the hook contract has the expected number of token1 tokens ready to redeem
-    //   uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
-    //   uint256 claimableTokens = hook.tokenIdClaimable(tokenId);
-    //   uint256 hookContractToken1Balance = token1.balanceOf(address(hook));
-    //   assertEq(claimableTokens, hookContractToken1Balance);
+      // Check that the hook contract has the expected number of token1 tokens ready to redeem
+      uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
+      uint256 claimableTokens = hook.tokenIdClaimable(tokenId);
+      uint256 hookContractToken1Balance = token1.balanceOf(address(hook));
+      assertEq(claimableTokens, hookContractToken1Balance);
 
-    //   // Ensure we can redeem the token1 tokens
-    //   uint256 originalToken1Balance = token1.balanceOf(address(this));
-    //   hook.redeem(tokenId, amount, address(this));
-    //   uint256 newToken1Balance = token1.balanceOf(address(this));
+      // Ensure we can redeem the token1 tokens
+      uint256 originalToken1Balance = token1.balanceOf(address(this));
+      hook.redeem(tokenId, amount, address(this));
+      uint256 newToken1Balance = token1.balanceOf(address(this));
 
-    //   assertEq(newToken1Balance - originalToken1Balance, claimableTokens);
-    // }
+      assertEq(newToken1Balance - originalToken1Balance, claimableTokens);
+    }
 
-    // function test_orderExecute_oneForZero() public {
-    //   int24 tick = -100;
-    //   uint256 amount = 10 ether;
-    //   bool zeroForOne = false;
+    function test_orderExecute_oneForZero() public {
+      int24 tick = -100;
+      uint256 amount = 10 ether;
+      bool zeroForOne = false;
 
-    //   // Place our order at tick -100 for 10e18 token1 tokens
-    //   token1.approve(address(hook), amount);
-    //   int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
+      // Place our order at tick -100 for 10e18 token1 tokens
+      token1.approve(address(hook), amount);
+      int24 tickLower = hook.placeOrder(poolKey, tick, amount, zeroForOne);
 
-    //   // Do a separate swap from zeroForOne to make tick go down
-    //   // Sell 1e18 token0 tokens for token1 tokens
-    //   IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
-    //       zeroForOne: !zeroForOne,
-    //       amountSpecified: 1 ether,
-    //       sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
-    //   });
+      // Do a separate swap from zeroForOne to make tick go down
+      // Sell 1e18 token0 tokens for token1 tokens
+      IPoolManager.SwapParams memory params = IPoolManager.SwapParams({
+          zeroForOne: !zeroForOne,
+          amountSpecified: 1 ether,
+          sqrtPriceLimitX96: TickMath.MIN_SQRT_RATIO + 1
+      });
 
-    //   PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
-    //       .TestSettings({withdrawTokens: true, settleUsingTransfer: true});
+      PoolSwapTest.TestSettings memory testSettings = PoolSwapTest
+          .TestSettings({withdrawTokens: true, settleUsingTransfer: true});
 
-    //   swapRouter.swap(poolKey, params, testSettings);
+      swapRouter.swap(poolKey, params, testSettings);
 
-    //   // Check that the order has been executed
-    //   int256 tokensLeftToSell = hook.takeProfitPositions(
-    //       poolId,
-    //       tick,
-    //       zeroForOne
-    //   );
-    //   assertEq(tokensLeftToSell, 0);
+      // Check that the order has been executed
+      int256 tokensLeftToSell = hook.takeProfitPositions(
+          poolId,
+          tick,
+          zeroForOne
+      );
+      assertEq(tokensLeftToSell, 0);
 
-    //   // Check that the hook contract has the expected number of token0 tokens ready to redeem
-    //   uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
-    //   uint256 claimableTokens = hook.tokenIdClaimable(tokenId);
-    //   uint256 hookContractToken0Balance = token0.balanceOf(address(hook));
-    //   assertEq(claimableTokens, hookContractToken0Balance);
+      // Check that the hook contract has the expected number of token0 tokens ready to redeem
+      uint256 tokenId = hook.getTokenId(poolKey, tickLower, zeroForOne);
+      uint256 claimableTokens = hook.tokenIdClaimable(tokenId);
+      uint256 hookContractToken0Balance = token0.balanceOf(address(hook));
+      assertEq(claimableTokens, hookContractToken0Balance);
 
-    //   // Ensure we can redeem the token0 tokens
-    //   uint256 originalToken0Balance = token0.balanceOf(address(this));
-    //   hook.redeem(tokenId, amount, address(this));
-    //   uint256 newToken0Balance = token0.balanceOf(address(this));
+      // Ensure we can redeem the token0 tokens
+      uint256 originalToken0Balance = token0.balanceOf(address(this));
+      hook.redeem(tokenId, amount, address(this));
+      uint256 newToken0Balance = token0.balanceOf(address(this));
 
-    //   assertEq(newToken0Balance - originalToken0Balance, claimableTokens);
-    // }
+      assertEq(newToken0Balance - originalToken0Balance, claimableTokens);
+    }
 }
